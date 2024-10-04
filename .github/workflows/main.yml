@@ -8,25 +8,64 @@ on:
 
 jobs:
   lint_js:
-      name: Lint JavaScript Files
-      runs-on: ubuntu-latest
+    name: Lint JavaScript Files
+    runs-on: ubuntu-latest
 
-      steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
 
-      - name: Install Node.js
-        uses: actions/setup-node@v4
+    - name: Install Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '16'
 
-      - name: Install and Run Linter
-        run: |
-          # This command finds all JavaScript files recursively and runs JSHint on them
-          npm init -y
-          npm install eslint eslint-config-standard eslint@^8.0.1 eslint-plugin-import@^2.25.2 eslint-plugin-n@^16.0.0  eslint-plugin-promise@^6.0.0
-          find ./secondChance-backend -name app.js -exec ./node_modules/.bin/eslint -c .eslintrc.js {} +
-          find ./secondChance-backend -name auth.js -exec ./node_modules/.bin/eslint -c .eslintrc.js {} +
-          find ./secondChance-backend -name secondChanceItemsRoutes.js -exec ./node_modules/.bin/eslint -c .eslintrc.js {} +
-          find ./secondChance-backend -name searchRoutes.js -exec ./node_modules/.bin/eslint -c .eslintrc.js {} +
-          find ./secondChance-backend -name index.js -exec ./node_modules/.bin/eslint -c .eslintrc.js {} +
-          find ./sentiment -name index.js -exec ./node_modules/.bin/eslint -c .eslintrc.js {} +
-          echo "Linted all the js files successfully"
+    - name: Install dependencies
+      run: |
+        npm init -y
+        npm install eslint@latest --save-dev
+
+    - name: Create ESLint config
+      run: |
+        cat << EOF > eslint.config.js
+        import js from '@eslint/js';
+        import globals from 'globals';
+
+        export default [
+          js.configs.recommended,
+          {
+            files: ['**/*.js'],
+            languageOptions: {
+              globals: {
+                ...globals.node
+              },
+              ecmaVersion: 2022
+            },
+            rules: {
+              'quotes': ['error', 'single'],
+              'semi': ['error', 'never'],
+              'comma-dangle': ['error', 'never'],
+              'no-unused-vars': ['error', { 'argsIgnorePattern': '^_' }],
+              'object-curly-spacing': ['error', 'always'],
+              'key-spacing': ['error', { 'beforeColon': false, 'afterColon': true }],
+              'object-shorthand': 'warn',
+              'prefer-const': 'error',
+              'spaced-comment': ['error', 'always'],
+              'quote-props': ['error', 'as-needed'],
+              'camelcase': ['error', { 'properties': 'never' }]
+            }
+          }
+        ];
+        EOF
+
+    - name: Run ESLint
+      run: |
+        npx eslint --fix ./secondChance-backend/**/*.js ./sentiment/**/*.js
+
+    - name: Commit linting changes
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add -A
+        git commit -m "Apply automatic linting fixes" || echo "No changes to commit"
+        git push
