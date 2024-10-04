@@ -1,11 +1,8 @@
 const express = require("express");
 const multer = require("multer");
-const path = require("path");
-const fs = require("fs");
 const router = express.Router();
 const connectToDatabase = require("../models/db");
 const logger = require("../logger");
-const { ReturnDocument } = require("mongodb");
 
 // Define the upload directory path
 const directoryPath = "public/images";
